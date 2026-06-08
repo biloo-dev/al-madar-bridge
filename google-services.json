@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "78400260654",
+    "project_id": "al-madar-bridge",
+    "storage_bucket": "al-madar-bridge.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78400260654:android:28c02324120a3c75576dbf",
+        "android_client_info": {
+          "package_name": "com.example.al_madar_bridge"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "78400260654-g413fbpkv5mc3js6ncc5m4gv28mqg7ce.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAK3J1Ak8-ruKhoNdwqp-HId3hHk3VOKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "78400260654-g413fbpkv5mc3js6ncc5m4gv28mqg7ce.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "78400260654-pus6r79rudi039vqnotq4pur2nneeafd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.alMadarBridge"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
