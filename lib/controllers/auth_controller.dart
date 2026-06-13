@@ -1,18 +1,27 @@
+import 'dart:developer';
+import 'dart:io';
+
+import 'package:al_madar_bridge/controllers/data_controller.dart';
+import 'package:al_madar_bridge/data/mock_firestore.dart';
+import 'package:al_madar_bridge/repositories/auth_repository.dart';
+import 'package:al_madar_bridge/services/pref_manager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:al_madar_bridge/repositories/auth_repository.dart';
-import 'package:al_madar_bridge/data/mock_firestore.dart';
 
 class AuthController extends GetxController {
   final AuthRepository _repository = AuthRepository();
-  
-  var isLoading = false.obs;
-  var isLoggedIn = false.obs;
 
-  // Field specific errors
-  var emailError = RxnString();
-  var passwordError = RxnString();
-  var generalError = RxnString();
+  final RxBool isLoading = false.obs;
+  final RxBool isLoggedIn = false.obs;
+
+  final registrationData = <String, dynamic>{}.obs;
+  final extraData = <String, dynamic>{}.obs;
+  final selectedFiles = <String, List<File>>{}.obs;
+  String registrationPassword = "";
+
+  final RxnString emailError = RxnString();
+  final RxnString passwordError = RxnString();
+  final RxnString generalError = RxnString();
 
   User? get currentUser => _repository.currentUser;
 
@@ -32,40 +41,96 @@ class AuthController extends GetxController {
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
       return false;
+    } catch (e) {
+      generalError.value = "فشل تسجيل الدخول. تأكد من اتصالك بالإنترنت";
+      return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<bool> register({
-    required String firstName,
-    required String lastName,
-    required String email,
-    required String phone,
-    required String wilaya,
-    required String commune,
-    required String userType,
-    required String password,
-  }) async {
+  Future<bool> registerFinal() async {
     isLoading.value = true;
     clearErrors();
     try {
-      final user = UserDocumentModel(
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        phone: phone,
-        wilaya: wilaya,
-        commune: commune,
-        userTypeId: userType,
+      final userModel = UserDocumentModel(
+        firstName: registrationData['firstName'] ?? "",
+        lastName: registrationData['lastName'] ?? "",
+        email: registrationData['email'] ?? "",
+        phone: registrationData['phone'] ?? "",
+        wilaya: registrationData['wilaya'] ?? "",
+        commune: registrationData['commune'] ?? "",
+        userTypeId: registrationData['userType'] ?? "",
+        address: registrationData['address'] ?? "",
+        data: Map<String, dynamic>.from(extraData),
+        profileCompleted: true,
+        registrationStep: 'completed',
       );
+
       bool success = await _repository.register(
-        password: password,
-        userData: user,
+        password: registrationPassword,
+        userData: userModel,
       );
+
+      if (success && currentUser != null) {
+        final uid = currentUser!.uid;
+        Map<String, dynamic> filesMap = {};
+
+        if (selectedFiles.isNotEmpty) {
+          final dataController = Get.find<DataController>();
+
+          for (var entry in selectedFiles.entries) {
+            final fieldName = entry.key;
+            final files = entry.value;
+            final List<String> urlsForField = [];
+
+            final field = dataController.dynamicFields.firstWhereOrNull(
+              (f) => f['fieldName'] == fieldName,
+            );
+            final fieldLabel =
+                field?['fieldLabel_ar'] ?? field?['fieldLabel'] ?? fieldName;
+
+            for (var file in files) {
+              final fileName = file.path.split(Platform.pathSeparator).last;
+              final String url = await _repository.uploadRegistrationFile(
+                userId: uid,
+                file: file,
+                fieldName: fieldName,
+                fileName: fileName,
+              );
+              urlsForField.add(url);
+            }
+
+            // New structured file data for the 'files' map inside user data
+            filesMap[fieldName] = {
+              'urls': urlsForField,
+              'label': fieldLabel,
+              'status': 'pending',
+              'rejectionReason': '',
+              'type': field?['fieldType'] ?? 'file',
+              'lastUpdated': DateTime.now().toIso8601String(),
+            };
+          }
+        }
+
+        // Finalize profile with files included in the 'data' map
+        await _repository.updateProfile(
+          data: {'files': filesMap},
+          isCompleted: true,
+        );
+
+        PrefManager.isProfileCompleted = true;
+        PrefManager.registrationStep = 'completed';
+        PrefManager.rememberLogin = true;
+        isLoggedIn.value = true;
+      }
       return success;
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
+      return false;
+    } catch (e) {
+      print("Register Error: $e");
+      generalError.value = "حدث خطأ غير متوقع أثناء إتمام التسجيل";
       return false;
     } finally {
       isLoading.value = false;
@@ -89,9 +154,6 @@ class AuthController extends GetxController {
       case 'weak-password':
         passwordError.value = "كلمة المرور ضعيفة جداً";
         break;
-      case 'invalid-credential':
-        generalError.value = "بيانات الاعتماد غير صالحة";
-        break;
       default:
         generalError.value = "حدث خطأ: ${e.message}";
     }
@@ -103,7 +165,15 @@ class AuthController extends GetxController {
     Get.offAllNamed('/login');
   }
 
-  Future<void> updateProfile({
+  Future<void> fetchUserProfile() async {
+    try {
+      await _repository.fetchUserProfile();
+    } catch (e) {
+      log("Profile Fetch Error: $e");
+    }
+  }
+
+  Future<bool> updateProfile({
     required Map<String, dynamic> data,
     bool isCompleted = false,
     String? nextStep,
@@ -115,16 +185,10 @@ class AuthController extends GetxController {
         isCompleted: isCompleted,
         nextStep: nextStep,
       );
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> fetchUserProfile() async {
-    isLoading.value = true;
-    try {
-      await _repository.fetchUserProfile();
-      update(); // Trigger UI update if using GetBuilder
+      return true;
+    } catch (e) {
+      log("Update Profile Error: $e");
+      return false;
     } finally {
       isLoading.value = false;
     }

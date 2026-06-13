@@ -1,6 +1,5 @@
-import 'package:al_madar_bridge/models/user_file.dart';
-import 'package:al_madar_bridge/services/pref_manager.dart';
 import 'package:al_madar_bridge/theme/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -21,42 +20,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _navigateToNext() async {
     await Future.delayed(const Duration(seconds: 2));
-    
-    if (PrefManager.rememberLogin) {
-      if (PrefManager.isProfileCompleted) {
-        Get.offAllNamed('/home');
-      } else {
-        // Resume registration based on user type and step
-        _resumeRegistration();
-      }
-    } else {
-      Get.offAllNamed('/onboarding');
-    }
-  }
 
-  void _resumeRegistration() {
-    String step = PrefManager.registrationStep;
-    String type = PrefManager.userType;
-
-    if (step == 'extra_details') {
-      switch (type) {
-        case 'contractor': Get.offAllNamed('/reg_contractor'); break;
-        case 'supplier': Get.offAllNamed('/reg_supplier'); break;
-        case 'craftsman': Get.offAllNamed('/reg_craftsman'); break;
-        case 'investor': Get.offAllNamed('/reg_investor'); break;
-        case 'equipment_owner': Get.offAllNamed('/reg_equipment_owner'); break;
-        default: Get.offAllNamed('/home');
-      }
-    } else if (step == 'files') {
-      // Assuming only contractors have a separate files step for now
-      if (type == 'contractor') {
-        Get.offAllNamed('/files_contractor');
-      } else {
-        Get.offAllNamed('/home');
-      }
-    } else {
-      Get.offAllNamed('/home');
-    }
+    // التوجه دائماً لواجهة الترحيب أولاً كما طلب المستخدم
+    Get.offAllNamed('/onboarding');
   }
 
   @override

@@ -21,6 +21,15 @@ class PrefManager {
   static String get userPhone => _prefs.getString('userPhone') ?? "";
   static set userPhone(String value) => _prefs.setString('userPhone', value);
 
+  static String get userAddress => _prefs.getString('userAddress') ?? "";
+  static set userAddress(String value) => _prefs.setString('userAddress', value);
+
+  static String get wilayaId => _prefs.getString('wilayaId') ?? "";
+  static set wilayaId(String value) => _prefs.setString('wilayaId', value);
+
+  static String get communeId => _prefs.getString('communeId') ?? "";
+  static set communeId(String value) => _prefs.setString('communeId', value);
+
   static String get userLastName => _prefs.getString('userLastName') ?? "";
   static set userLastName(String value) => _prefs.setString('userLastName', value);
 

@@ -63,6 +63,24 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _checkExistingSession();
+  }
+
+  void _checkExistingSession() {
+    // إذا كان المستخدم مسجلاً دخوله مسبقاً، نتوجه للرئيسية مباشرة عند الوصول لهذه الواجهة
+    final user = _authController.currentUser;
+    if (user != null) {
+      if (PrefManager.isProfileCompleted) {
+        Future.microtask(() => Get.offAllNamed('/home'));
+      } else {
+        Future.microtask(() => _resumeRegistration());
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 

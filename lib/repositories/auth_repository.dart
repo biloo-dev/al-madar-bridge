@@ -1,47 +1,29 @@
-import 'package:al_madar_bridge/models/user_file.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:al_madar_bridge/data/mock_firestore.dart';
 import 'package:al_madar_bridge/services/pref_manager.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // المستخدم الحالي
   User? get currentUser => _auth.currentUser;
 
-  // تسجيل الدخول
   Future<bool> login(String email, String password) async {
     try {
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
+
       if (userCredential.user != null) {
-        // Fetch user data from Firestore
         final doc = await _db.collection('users').doc(userCredential.user!.uid).get();
         if (doc.exists) {
-          final data = doc.data()!;
-          PrefManager.userFirstName = data['firstName'] ?? '';
-          PrefManager.userLastName = data['lastName'] ?? '';
-          PrefManager.userPhone = data['phone'] ?? '';
-          PrefManager.userType = data['userTypeId'] ?? '';
-          PrefManager.isProfileCompleted = data['profileCompleted'] ?? false;
-          PrefManager.registrationStep = data['registrationStep'] ?? 'basic';
-          PrefManager.userStatus = data['status'] ?? 'pending';
-
-          // Store extra registration data
-          Map<String, dynamic> extraData = {};
-          data.forEach((key, value) {
-            if (!['firstName', 'lastName', 'email', 'phone', 'wilayaId', 'communeId', 'userTypeId', 'status', 'profileCompleted', 'registrationStep', 'createdAt', 'role', 'updatedAt'].contains(key)) {
-              extraData[key] = value;
-            }
-          });
-          PrefManager.customProfileData = extraData;
+          _updateLocalPrefsFromMap(doc.data()!);
         }
-        
         PrefManager.rememberLogin = true;
         PrefManager.userEmail = email;
         return true;
@@ -55,7 +37,6 @@ class AuthRepository {
     }
   }
 
-  // إنشاء حساب
   Future<bool> register({
     required String password,
     required UserDocumentModel userData,
@@ -67,31 +48,11 @@ class AuthRepository {
       );
 
       if (userCredential.user != null) {
-        // Store user data in Firestore
-        await _db.collection('users').doc(userCredential.user!.uid).set({
-          'firstName': userData.firstName,
-          'lastName': userData.lastName,
-          'email': userData.email,
-          'phone': userData.phone,
-          'wilayaId': userData.wilaya,
-          'communeId': userData.commune,
-          'userTypeId': userData.userTypeId,
-          'status': 'pending',
-          'profileCompleted': false,
-          'registrationStep': 'extra_details', // After basic info, we need extra details
-          'createdAt': FieldValue.serverTimestamp(),
-          'role': 'user',
-        });
-
-        PrefManager.userFirstName = userData.firstName;
-        PrefManager.userLastName = userData.lastName;
-        PrefManager.userPhone = userData.phone;
-        PrefManager.userEmail = userData.email;
-        PrefManager.userType = userData.userTypeId;
-        PrefManager.isProfileCompleted = false;
-        PrefManager.registrationStep = 'extra_details';
+        final uid = userCredential.user!.uid;
+        userData.userId = uid;
+        await _db.collection('users').doc(uid).set(userData.toMap());
+        _updateLocalPrefsFromModel(userData);
         PrefManager.rememberLogin = true;
-        
         return true;
       }
       return false;
@@ -103,7 +64,6 @@ class AuthRepository {
     }
   }
 
-  // تسجيل الخروج
   Future<void> logout() async {
     await _auth.signOut();
     PrefManager.clear();
@@ -116,27 +76,42 @@ class AuthRepository {
   }) async {
     final user = _auth.currentUser;
     if (user != null) {
-      final updateData = {
-        ...data,
+      final String step = isCompleted ? 'completed' : (nextStep ?? PrefManager.registrationStep);
+      
+      // We merge the data into the existing 'data' map in Firestore
+      final Map<String, dynamic> updateData = {
         'profileCompleted': isCompleted,
+        'registrationStep': step,
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      if (nextStep != null) {
-        updateData['registrationStep'] = nextStep;
-      }
-      await _db.collection('users').doc(user.uid).update(updateData);
-      
-      // Update local prefs
-      PrefManager.isProfileCompleted = isCompleted;
-      if (nextStep != null) {
-        PrefManager.registrationStep = nextStep;
-      }
 
-      // Update custom profile data locally
-      var existing = PrefManager.customProfileData;
-      existing.addAll(data);
-      PrefManager.customProfileData = existing;
+      // Dot notation to update nested 'data' fields without overwriting everything
+      data.forEach((key, value) {
+        updateData['data.$key'] = value;
+      });
+
+      await _db.collection('users').doc(user.uid).update(updateData);
+
+      PrefManager.isProfileCompleted = isCompleted;
+      PrefManager.registrationStep = step;
+      
+      // Update local PrefManager data by merging
+      final currentData = PrefManager.customProfileData;
+      currentData.addAll(data);
+      PrefManager.customProfileData = currentData;
     }
+  }
+
+  Future<String> uploadRegistrationFile({
+    required String userId,
+    required File file,
+    required String fieldName,
+    required String fileName,
+  }) async {
+    final String uniqueName = "${DateTime.now().millisecondsSinceEpoch}_$fileName";
+    final ref = _storage.ref().child('users/$userId/docs/$fieldName/$uniqueName');
+    final uploadTask = await ref.putFile(file);
+    return await uploadTask.ref.getDownloadURL();
   }
 
   Future<void> fetchUserProfile() async {
@@ -144,25 +119,36 @@ class AuthRepository {
     if (user != null) {
       final doc = await _db.collection('users').doc(user.uid).get();
       if (doc.exists) {
-        final data = doc.data()!;
-        PrefManager.userFirstName = data['firstName'] ?? '';
-        PrefManager.userLastName = data['lastName'] ?? '';
-        PrefManager.userPhone = data['phone'] ?? '';
-        PrefManager.userType = data['userTypeId'] ?? '';
-        PrefManager.userEmail = data['email'] ?? PrefManager.userEmail;
-        PrefManager.isProfileCompleted = data['profileCompleted'] ?? false;
-        PrefManager.registrationStep = data['registrationStep'] ?? 'basic';
-        PrefManager.userStatus = data['status'] ?? 'pending';
-
-        // Store extra registration data
-        Map<String, dynamic> extraData = {};
-        data.forEach((key, value) {
-          if (!['firstName', 'lastName', 'email', 'phone', 'wilayaId', 'communeId', 'userTypeId', 'status', 'profileCompleted', 'registrationStep', 'createdAt', 'role', 'updatedAt'].contains(key)) {
-            extraData[key] = value;
-          }
-        });
-        PrefManager.customProfileData = extraData;
+        _updateLocalPrefsFromMap(doc.data()!);
       }
     }
+  }
+
+  void _updateLocalPrefsFromMap(Map<String, dynamic> data) {
+    PrefManager.userFirstName = data['firstName'] ?? '';
+    PrefManager.userLastName = data['lastName'] ?? '';
+    PrefManager.userPhone = data['phone'] ?? '';
+    PrefManager.userAddress = data['address'] ?? '';
+    PrefManager.wilayaId = data['wilayaId']?.toString() ?? '';
+    PrefManager.communeId = data['communeId']?.toString() ?? '';
+    PrefManager.userType = data['userTypeId'] ?? '';
+    PrefManager.isProfileCompleted = data['profileCompleted'] ?? false;
+    PrefManager.registrationStep = data['registrationStep'] ?? 'basic';
+    PrefManager.userStatus = data['status'] ?? 'pending';
+
+    if (data['data'] != null && data['data'] is Map) {
+      PrefManager.customProfileData = Map<String, dynamic>.from(data['data']);
+    }
+  }
+
+  void _updateLocalPrefsFromModel(UserDocumentModel model) {
+    PrefManager.userFirstName = model.firstName;
+    PrefManager.userLastName = model.lastName;
+    PrefManager.userPhone = model.phone;
+    PrefManager.userEmail = model.email;
+    PrefManager.userType = model.userTypeId;
+    PrefManager.isProfileCompleted = model.profileCompleted;
+    PrefManager.registrationStep = model.registrationStep;
+    PrefManager.customProfileData = model.data;
   }
 }

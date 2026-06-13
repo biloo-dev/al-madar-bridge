@@ -13,9 +13,9 @@ class UserTypeModel {
 
   factory UserTypeModel.fromJson(Map<String, dynamic> json) {
     return UserTypeModel(
-      id: json['id'] ?? '',
-      nameAr: json['nameAr'] ?? '',
-      nameEn: json['nameEn'] ?? '',
+      id: json['id']?.toString() ?? '',
+      nameAr: (json['nameAr'] ?? json['name_ar'] ?? '').toString(),
+      nameEn: (json['nameEn'] ?? json['name_en'] ?? '').toString(),
       isActive: json['isActive'] ?? true,
     );
   }

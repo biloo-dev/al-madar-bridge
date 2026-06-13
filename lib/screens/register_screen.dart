@@ -1,9 +1,10 @@
-import 'package:al_madar_bridge/controllers/data_controller.dart' show DataController;
+import 'package:al_madar_bridge/controllers/auth_controller.dart';
+import 'package:al_madar_bridge/controllers/data_controller.dart'
+    show DataController;
 import 'package:al_madar_bridge/screens/widgets/BuildHeader.dart';
-import 'package:al_madar_bridge/theme/app_theme.dart';
+import 'package:al_madar_bridge/screens/widgets/searchable_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:al_madar_bridge/controllers/auth_controller.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,49 +17,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
+  final _addressController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _communeController = TextEditingController(text: "الجزائر الوسطى");
+
   final AuthController _authController = Get.find<AuthController>();
   final DataController _dataController = Get.find<DataController>();
 
-  final List<String> _wilayas = ["الجزائر", "وهران", "قسنطينة", "البليدة", "شلف", "عنابة"];
-  late String _selectedWilaya;
-
+  String? _selectedWilayaId;
+  String? _selectedCommuneId;
   String? _selectedUserTypeId;
 
   @override
   void initState() {
     super.initState();
-    _selectedWilaya = _wilayas[0];
+    // Wilayas are fetched automatically in DataController.onInit()
+    
+    // Set initial user type from arguments if provided
+    if (Get.arguments != null) {
+      _selectedUserTypeId = Get.arguments.toString();
+    }
   }
 
-  void _next() async {
-    if (_formKey.currentState!.validate() && _selectedUserTypeId != null) {
-      bool success = await _authController.register(
-        firstName: _firstNameController.text,
-        lastName: _lastNameController.text,
-        email: _emailController.text,
-        phone: _phoneController.text,
-        wilaya: _selectedWilaya,
-        commune: _communeController.text,
-        userType: _selectedUserTypeId!,
-        password: _passwordController.text,
-      );
+  void _next() {
+    if (_formKey.currentState!.validate() &&
+        _selectedUserTypeId != null &&
+        _selectedWilayaId != null &&
+        _selectedCommuneId != null) {
+      // Save data to AuthController instead of creating account now
+      _authController.registrationData.addAll({
+        'firstName': _firstNameController.text,
+        'lastName': _lastNameController.text,
+        'address': _addressController.text,
+        'email': _emailController.text,
+        'phone': _phoneController.text,
+        'wilaya': _selectedWilayaId!,
+        'commune': _selectedCommuneId!,
+        'userType': _selectedUserTypeId!,
+      });
+      _authController.registrationPassword = _passwordController.text;
 
-      if (success) {
-        switch (_selectedUserTypeId) {
-          case 'contractor': Get.toNamed('/reg_contractor'); break;
-          case 'supplier': Get.toNamed('/reg_supplier'); break;
-          case 'craftsman': Get.toNamed('/reg_craftsman'); break;
-          case 'investor': Get.toNamed('/reg_investor'); break;
-          case 'equipment_owner': Get.toNamed('/reg_equipment_owner'); break;
-        }
-      } else {
-        Get.snackbar("خطأ", "فشل إنشاء الحساب، يرجى المحاولة لاحقاً",
-            snackPosition: SnackPosition.BOTTOM);
-      }
+      // Navigate to the extra details screen
+      Get.toNamed('/reg_extra_details');
     }
   }
 
@@ -70,10 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFD6EEF8),
-              Colors.white,
-            ],
+            colors: [Color(0xFFD6EEF8), Colors.white],
           ),
         ),
         child: SafeArea(
@@ -85,6 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   icon: Icons.person_add_alt_1,
                   title: "إنشاء حساب جديد",
                   subtitle: "المرحلة الأولى من التسجيل",
+                  showBackButton: true, // Assuming BuildHeader supports it or just use a Leading icon
                 ),
                 Container(
                   padding: const EdgeInsets.all(24),
@@ -109,7 +108,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hintText: "الاسم",
                             prefixIcon: Icon(Icons.person_outline),
                           ),
-                          validator: (v) => (v == null || v.isEmpty) ? "مطلوب" : null,
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? "مطلوب" : null,
                         ),
                         const SizedBox(height: 18),
                         TextFormField(
@@ -118,9 +118,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hintText: "اللقب",
                             prefixIcon: Icon(Icons.badge_outlined),
                           ),
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? "مطلوب" : null,
                         ),
                         const SizedBox(height: 18),
-                        Obx(() => TextFormField(
+                        TextFormField(
+                          controller: _addressController,
+                          decoration: const InputDecoration(
+                            hintText: "العنوان الكامل",
+                            prefixIcon: Icon(Icons.location_on_outlined),
+                          ),
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? "مطلوب" : null,
+                        ),
+                        const SizedBox(height: 18),
+                        TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
@@ -128,8 +140,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             prefixIcon: const Icon(Icons.email_outlined),
                             errorText: _authController.emailError.value,
                           ),
-                          onChanged: (_) => _authController.emailError.value = null,
-                        )),
+                          onChanged: (v) {
+                            if (_authController.emailError.value != null) {
+                              _authController.emailError.value = null;
+                            }
+                          },
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? "مطلوب" : null,
+                        ),
                         const SizedBox(height: 18),
                         TextFormField(
                           controller: _phoneController,
@@ -138,9 +156,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hintText: "رقم الهاتف",
                             prefixIcon: Icon(Icons.phone),
                           ),
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? "مطلوب" : null,
                         ),
                         const SizedBox(height: 18),
-                        Obx(() => TextFormField(
+                        TextFormField(
                           controller: _passwordController,
                           obscureText: true,
                           decoration: InputDecoration(
@@ -148,49 +168,68 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             prefixIcon: const Icon(Icons.lock_outline),
                             errorText: _authController.passwordError.value,
                           ),
-                          onChanged: (_) => _authController.passwordError.value = null,
-                        )),
-                        const SizedBox(height: 18),
-                        DropdownButtonFormField<String>(
-                          value: _selectedWilaya,
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.location_on),
-                            hintText: "الولاية",
-                          ),
-                          items: _wilayas.map((w) => DropdownMenuItem(value: w, child: Text(w))).toList(),
-                          onChanged: (value) => setState(() => _selectedWilaya = value!),
+                          onChanged: (v) {
+                            if (_authController.passwordError.value != null) {
+                              _authController.passwordError.value = null;
+                            }
+                          },
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? "مطلوب" : null,
                         ),
                         const SizedBox(height: 18),
-                        TextFormField(
-                          controller: _communeController,
-                          decoration: const InputDecoration(
-                            hintText: "البلدية",
-                            prefixIcon: Icon(Icons.location_city),
-                          ),
-                        ),
+                        Obx(() => SearchableDropdownField(
+                              label: "الولاية",
+                              icon: Icons.map,
+                              items: _dataController.wilayas.toList(),
+                              selectedValue: _selectedWilayaId,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedWilayaId = value.toString();
+                                  _selectedCommuneId = null;
+                                });
+                                if (value != null) {
+                                  _dataController
+                                      .fetchCommunes(value.toString());
+                                }
+                              },
+                            )),
                         const SizedBox(height: 18),
-                        Obx(() => DropdownButtonFormField<String>(
-                          value: _selectedUserTypeId,
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.business_center),
-                            hintText: "نوع الحساب",
-                          ),
-                          items: _dataController.userTypes.map((type) => DropdownMenuItem(
-                            value: type.id,
-                            child: Text(type.nameAr),
-                          )).toList(),
-                          onChanged: (value) => setState(() => _selectedUserTypeId = value!),
-                          validator: (v) => v == null ? "يرجى اختيار نوع الحساب" : null,
-                        )),
-                        Obx(() => _authController.generalError.value != null
-                            ? Padding(
-                                padding: const EdgeInsets.only(top: 10),
-                                child: Text(
-                                  _authController.generalError.value!,
-                                  style: const TextStyle(color: Colors.red, fontSize: 12),
-                                ),
-                              )
-                            : const SizedBox.shrink()),
+                        Obx(() => SearchableDropdownField(
+                              label: "البلدية",
+                              icon: Icons.location_city,
+                              items: _dataController.communes,
+                              selectedValue: _selectedCommuneId,
+                              isLoading: _dataController.communes.isEmpty &&
+                                  _selectedWilayaId != null,
+                              onChanged: (value) => setState(
+                                  () => _selectedCommuneId = value.toString()),
+                              hint: _selectedWilayaId == null
+                                  ? "اختر الولاية أولاً"
+                                  : "اختر البلدية",
+                            )),
+                        const SizedBox(height: 18),
+                        Obx(() => SearchableDropdownField(
+                              label: "نوع الحساب",
+                              icon: Icons.business_center,
+                              items: _dataController.userTypes.toList(),
+                              selectedValue: _selectedUserTypeId,
+                              onChanged: (value) => setState(
+                                  () => _selectedUserTypeId = value.toString()),
+                            )),
+                        Obx(
+                          () => _authController.generalError.value != null
+                              ? Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: Text(
+                                    _authController.generalError.value!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                         const SizedBox(height: 30),
                       ],
                     ),
@@ -204,23 +243,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Obx(() => SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _authController.isLoading.value ? null : _next,
-            child: _authController.isLoading.value 
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("متابعة", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward),
-                ],
-              ),
+        child: Obx(
+          () => SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _authController.isLoading.value ? null : _next,
+              child: _authController.isLoading.value
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "متابعة",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward),
+                      ],
+                    ),
+            ),
           ),
-        )),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );

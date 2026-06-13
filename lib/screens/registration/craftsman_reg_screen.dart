@@ -96,6 +96,7 @@ class _CraftsmanRegScreenState extends State<CraftsmanRegScreen> {
                 BuildCard(
                   children: [
                     Obx(() => DropdownButtonFormField<String>(
+                      isExpanded: true,
                       value: _selectedCraft,
 
                       decoration: const InputDecoration(
@@ -108,7 +109,10 @@ class _CraftsmanRegScreenState extends State<CraftsmanRegScreen> {
                         return DropdownMenuItem(
                           value: craft,
 
-                          child: Text(craft),
+                          child: Text(
+                            craft,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
                       }).toList(),
 

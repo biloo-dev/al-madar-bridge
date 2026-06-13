@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-
   // ===== COLORS =====
 
   static const Color pureWhite = Color(0xFFFFFFFF);
@@ -29,24 +28,18 @@ class AppTheme {
   // ===== LIGHT THEME =====
 
   static ThemeData get lightTheme {
-
     final base = ThemeData.light(useMaterial3: true);
 
     return base.copyWith(
-
       brightness: Brightness.light,
 
       scaffoldBackgroundColor: pureWhite,
 
       textTheme: GoogleFonts.alexandriaTextTheme(
         base.textTheme,
-      ).apply(
-        bodyColor: textDark,
-        displayColor: textDark,
-      ),
+      ).apply(bodyColor: textDark, displayColor: textDark),
 
       colorScheme: const ColorScheme.light(
-
         primary: primaryBlue,
 
         secondary: accentOrange,
@@ -85,9 +78,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: pureWhite,
         elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -95,15 +86,10 @@ class AppTheme {
           backgroundColor: primaryBlue,
           foregroundColor: pureWhite,
 
-          minimumSize: const Size(
-            64,
-            54,
-          ),
+          minimumSize: const Size(64, 54),
 
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              14,
-            ),
+            borderRadius: BorderRadius.circular(14),
           ),
 
           textStyle: GoogleFonts.alexandria(
@@ -115,69 +101,44 @@ class AppTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-
           foregroundColor: primaryBlue,
 
-          side: const BorderSide(
-            color: primaryBlue,
-          ),
+          side: const BorderSide(color: primaryBlue),
 
-          minimumSize: const Size(
-            64,
-            54,
-          ),
+          minimumSize: const Size(64, 54),
 
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              14,
-            ),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
-
         filled: true,
 
         fillColor: lightSurface,
 
-        contentPadding:
-        const EdgeInsets.symmetric(
+        contentPadding: const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 16,
         ),
 
         border: OutlineInputBorder(
-          borderRadius:
-          BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14),
 
-          borderSide:
-          const BorderSide(
-            color: borderGray,
-          ),
+          borderSide: const BorderSide(color: borderGray),
         ),
 
-        enabledBorder:
-        OutlineInputBorder(
-          borderRadius:
-          BorderRadius.circular(14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
 
-          borderSide:
-          const BorderSide(
-            color: borderGray,
-          ),
+          borderSide: const BorderSide(color: borderGray),
         ),
 
-        focusedBorder:
-        OutlineInputBorder(
-          borderRadius:
-          BorderRadius.circular(14),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
 
-          borderSide:
-          const BorderSide(
-            color: primaryBlue,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: primaryBlue, width: 2),
         ),
       ),
 
@@ -188,24 +149,16 @@ class AppTheme {
   // ===== DARK THEME =====
 
   static ThemeData get darkTheme {
-
-    final base =
-    ThemeData.dark(useMaterial3: true);
+    final base = ThemeData.dark(useMaterial3: true);
 
     return base.copyWith(
-
       brightness: Brightness.dark,
 
-      scaffoldBackgroundColor:
-      darkBackground,
+      scaffoldBackgroundColor: darkBackground,
 
-      textTheme:
-      GoogleFonts.alexandriaTextTheme(
-        base.textTheme,
-      ),
+      textTheme: GoogleFonts.alexandriaTextTheme(base.textTheme),
 
       colorScheme: const ColorScheme.dark(
-
         primary: primaryBlue,
 
         secondary: accentOrange,
@@ -216,109 +169,63 @@ class AppTheme {
 
         onSurface: pureWhite,
 
-        primaryContainer:
-        primaryBlueDark,
+        primaryContainer: primaryBlueDark,
 
-        onPrimaryContainer:
-        primaryBlueLight,
+        onPrimaryContainer: primaryBlueLight,
 
-        secondaryContainer:
-        accentOrangeDark,
+        secondaryContainer: accentOrangeDark,
 
-        onSecondaryContainer:
-        accentOrangeLight,
+        onSecondaryContainer: accentOrangeLight,
 
-        outline: Color(
-          0xFF39414A,
-        ),
+        outline: Color(0xFF39414A),
 
-        surfaceContainerHighest:
-        darkContainer,
+        surfaceContainerHighest: darkContainer,
       ),
 
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: true,
-        backgroundColor:
-        darkBackground,
+        backgroundColor: darkBackground,
 
-        foregroundColor:
-        pureWhite,
+        foregroundColor: pureWhite,
 
-        titleTextStyle:
-        GoogleFonts.alexandria(
+        titleTextStyle: GoogleFonts.alexandria(
           fontSize: 20,
-          fontWeight:
-          FontWeight.w700,
+          fontWeight: FontWeight.w700,
         ),
       ),
 
       cardTheme: CardThemeData(
         color: darkSurface,
 
-        shape:
-        RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.circular(
-            18,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryBlue,
+
+          foregroundColor: pureWhite,
+
+          minimumSize: const Size(64, 54),
+
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
 
-      elevatedButtonTheme:
-      ElevatedButtonThemeData(
-        style:
-        ElevatedButton.styleFrom(
-
-          backgroundColor:
-          primaryBlue,
-
-          foregroundColor:
-          pureWhite,
-
-          minimumSize:
-          const Size(
-            64,
-            54,
-          ),
-
-          shape:
-          RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(
-              14,
-            ),
-          ),
-        ),
-      ),
-
-      inputDecorationTheme:
-      InputDecorationTheme(
-
+      inputDecorationTheme: InputDecorationTheme(
         filled: true,
 
         fillColor: darkContainer,
 
-        border:
-        OutlineInputBorder(
-          borderRadius:
-          BorderRadius.circular(
-            14,
-          ),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
 
-        focusedBorder:
-        OutlineInputBorder(
-          borderRadius:
-          BorderRadius.circular(
-            14,
-          ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
 
-          borderSide:
-          const BorderSide(
-            color: primaryBlue,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: primaryBlue, width: 2),
         ),
       ),
     );

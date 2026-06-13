@@ -85,6 +85,7 @@ class _InvestorRegScreenState extends State<InvestorRegScreen> {
                 BuildCard(
                   children: [
                     Obx(() => DropdownButtonFormField<String>(
+                      isExpanded: true,
                       value: _selectedType,
                       decoration: const InputDecoration(
                         hintText: "نوع الاستثمار",
@@ -92,7 +93,13 @@ class _InvestorRegScreenState extends State<InvestorRegScreen> {
                       ),
                       items: _dataController.investmentCategories
                           .map(
-                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            (e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(
+                                e,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           )
                           .toList(),
                       onChanged: (v) {

@@ -1,11 +1,10 @@
+import 'package:al_madar_bridge/controllers/auth_controller.dart';
+import 'package:al_madar_bridge/controllers/data_controller.dart';
 import 'package:al_madar_bridge/screens/widgets/BuildCard.dart';
 import 'package:al_madar_bridge/screens/widgets/BuildHeader.dart';
 import 'package:al_madar_bridge/services/pref_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:al_madar_bridge/controllers/auth_controller.dart';
-import 'package:al_madar_bridge/controllers/data_controller.dart';
-import 'package:al_madar_bridge/services/pref_manager.dart';
 
 class ContractorRegScreen extends StatefulWidget {
   const ContractorRegScreen({super.key});
@@ -16,64 +15,39 @@ class ContractorRegScreen extends StatefulWidget {
 
 class _ContractorRegScreenState extends State<ContractorRegScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _companyController = TextEditingController();
-  final _registerNumController = TextEditingController();
-  final _taxIdController = TextEditingController();
-  final _addressController = TextEditingController();
   final DataController _dataController = Get.find<DataController>();
   final AuthController _authController = Get.find<AuthController>();
 
-  String? _selectedSpecialty;
-  String? _selectedClass;
+  // Map to store dynamic field values
+  final Map<String, dynamic> _fieldValues = {};
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill if data exists (for resumption)
-    final data = PrefManager.customProfileData;
-    if (data.isNotEmpty) {
-      _companyController.text = data["companyName"] ?? "";
-      _registerNumController.text = data["registerNum"] ?? "";
-      _taxIdController.text = data["taxId"] ?? "";
-      _addressController.text = data["address"] ?? "";
-      _selectedSpecialty = data["specialty"];
-      _selectedClass = data["class"];
-    }
+    // Fetch fields specifically for contractor type
+    _dataController.fetchDynamicFields('contractor_fields');
 
-    if (_selectedSpecialty == null && _dataController.contractorCategories.isNotEmpty) {
-      _selectedSpecialty = _dataController.contractorCategories[0];
-    }
-    if (_selectedClass == null && _dataController.contractorClasses.isNotEmpty) {
-      _selectedClass = _dataController.contractorClasses[0];
-    }
+    // Load existing data if any
+    final existingData = PrefManager.customProfileData;
+    _fieldValues.addAll(existingData);
   }
 
   void _save() async {
     if (_formKey.currentState!.validate()) {
-      final data = {
-        "companyName": _companyController.text,
-        "registerNum": _registerNumController.text,
-        "taxId": _taxIdController.text,
-        "address": _addressController.text,
-        "specialty": _selectedSpecialty ?? "",
-        "class": _selectedClass ?? "",
-      };
-      
-      PrefManager.customProfileData = data;
-      
+      // Save data locally and update Firestore
+      PrefManager.customProfileData = _fieldValues;
+
       await _authController.updateProfile(
-        data: data,
+        data: _fieldValues,
         nextStep: 'files',
       );
 
       Get.offAllNamed('/files_contractor');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "الرجاء استكمال البيانات ورفع كافة الوثائق اللازمة للتدقيق",
-          ),
-        ),
+      Get.snackbar(
+        "تنبيه",
+        "يرجى ملء جميع الحقول المطلوبة",
+        snackPosition: SnackPosition.BOTTOM,
       );
     }
   }
@@ -85,167 +59,140 @@ class _ContractorRegScreenState extends State<ContractorRegScreen> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
-
             end: Alignment.bottomCenter,
-
             colors: [Color(0xFFD6EEF8), Colors.white],
           ),
         ),
-
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+          child: Obx(() {
+            // Filter out file fields for this screen (they go to the next screen)
+            final fields = _dataController.dynamicFields
+                .where((f) => f['fieldType'] != 'file')
+                .toList();
 
-            child: Column(
-              children: [
-                BuildHeader(
-                  icon: Icons.business,
-
-                  title: "وثائق وتصنيف المقاول",
-
-                  subtitle: "المرحلة الثانية من التسجيل",
-                ),
-
-                BuildCard(
-                  children: [
-                    Form(
-                      key: _formKey,
-
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _companyController,
-
-                            decoration: const InputDecoration(
-                              hintText: "اسم المؤسسة",
-
-                              prefixIcon: Icon(Icons.business),
-                            ),
-
-                            validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return "مطلوب";
-                              }
-
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          TextFormField(
-                            controller: _registerNumController,
-
-                            decoration: const InputDecoration(
-                              hintText: "رقم السجل التجاري",
-
-                              prefixIcon: Icon(Icons.tag),
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          TextFormField(
-                            controller: _taxIdController,
-
-                            decoration: const InputDecoration(
-                              hintText: "رقم التعريف الجبائي",
-
-                              prefixIcon: Icon(Icons.receipt_long),
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          TextFormField(
-                            controller: _addressController,
-
-                            decoration: const InputDecoration(
-                              hintText: "العنوان",
-
-                              prefixIcon: Icon(Icons.location_on),
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          Obx(() => DropdownButtonFormField<String>(
-                            value: _selectedSpecialty,
-
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.build),
-
-                              hintText: "التخصص",
-                            ),
-
-                            items: _dataController.contractorCategories.map((e) {
-                              return DropdownMenuItem(value: e, child: Text(e));
-                            }).toList(),
-
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedSpecialty = value!;
-                              });
-                            },
-                            validator: (v) => v == null ? "مطلوب" : null,
-                          )),
-
-                          const SizedBox(height: 18),
-
-                          Obx(() => DropdownButtonFormField<String>(
-                            value: _selectedClass,
-
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.workspace_premium),
-
-                              hintText: "الصنف",
-                            ),
-
-                            items: _dataController.contractorClasses.map((e) {
-                              return DropdownMenuItem(value: e, child: Text(e));
-                            }).toList(),
-
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedClass = value!;
-                              });
-                            },
-                            validator: (v) => v == null ? "مطلوب" : null,
-                          )),
-
-                          const SizedBox(height: 30),
-                        ],
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  BuildHeader(
+                    icon: Icons.business,
+                    title: "بيانات المؤسسة",
+                    subtitle: "المرحلة الثانية من التسجيل",
+                  ),
+                  BuildCard(
+                    children: [
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: fields
+                              .map((field) => _buildDynamicField(field))
+                              .toList(),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
         ),
       ),
       floatingActionButton: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
         height: 56,
-
         child: ElevatedButton(
           onPressed: _save,
-
-          child: Row(
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                " مرحلة رفع الملفات",
-
+              Text(
+                "مرحلة رفع الوثائق",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              Spacer(),
               Icon(Icons.navigate_next),
             ],
           ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+
+  Widget _buildDynamicField(Map<String, dynamic> field) {
+    final String type = field['fieldType'];
+    final String name = field['fieldName'];
+    final String label = field['fieldLabel'];
+    final bool isRequired = field['required'] ?? false;
+
+    switch (type) {
+      case 'text':
+      case 'textarea':
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 18),
+          child: TextFormField(
+            initialValue: _fieldValues[name]?.toString(),
+            maxLines: type == 'textarea' ? 3 : 1,
+            decoration: InputDecoration(
+              hintText: label,
+              prefixIcon: const Icon(Icons.edit_note),
+            ),
+            onChanged: (v) => _fieldValues[name] = v,
+            validator: (v) =>
+                (isRequired && (v == null || v.isEmpty)) ? "مطلوب" : null,
+          ),
+        );
+      case 'select':
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 18),
+          child: _buildDropdownField(field),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildDropdownField(Map<String, dynamic> field) {
+    final String name = field['fieldName'];
+    final String label = field['fieldLabel'];
+    final String dataSource = field['dataSource'] ?? '';
+
+    List<dynamic> items = [];
+    if (dataSource == 'contractor_categories') {
+      items = _dataController.contractorCategories;
+    } else if (dataSource == 'contractor_classes') {
+      items = _dataController.contractorClasses;
+    }
+
+    return DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: _fieldValues[name],
+      decoration: InputDecoration(
+        hintText: label,
+        prefixIcon: const Icon(Icons.list),
+      ),
+      items: items.map((e) {
+        String val = "";
+        String text = "";
+        if (e is String) {
+          val = e;
+          text = e;
+        } else if (e is Map) {
+          val = e['id'] ?? e['name'] ?? '';
+          text = e['nameAr'] ?? e['name_ar'] ?? e['name'] ?? e['id'] ?? '';
+        }
+        return DropdownMenuItem<String>(
+          value: val,
+          child: Text(
+            text,
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      }).toList(),
+      onChanged: (v) => setState(() => _fieldValues[name] = v),
+      validator: (v) =>
+          (field['required'] == true && v == null) ? "مطلوب" : null,
     );
   }
 }
