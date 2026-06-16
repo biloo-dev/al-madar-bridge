@@ -71,7 +71,7 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
       } else {
         final success = await _authController.registerFinal();
         if (success) {
-          Get.offAllNamed('/home');
+          Get.offAllNamed('/verification_pending');
         } else {
           Get.snackbar("خطأ", "فشل التسجيل النهائي، يرجى المحاولة لاحقاً");
         }

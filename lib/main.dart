@@ -3,12 +3,14 @@ import 'package:al_madar_bridge/firebase_options.dart';
 import 'package:al_madar_bridge/screens/onboarding_screen.dart';
 import 'package:al_madar_bridge/screens/registration/contractor_files_screen.dart';
 import 'package:al_madar_bridge/screens/registration/extra_details_screen.dart';
+import 'package:al_madar_bridge/screens/registration/verification_pending_screen.dart';
 import 'package:al_madar_bridge/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -18,24 +20,35 @@ import 'services/pref_manager.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock orientation to portrait
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  // تهيئة الخدمات بشكل منفصل لضمان عدم توقف التطبيق عند حدوث خطأ في إحداها
   try {
-    WidgetsFlutterBinding.ensureInitialized();
-
-    // Lock orientation to portrait for a more consistent UI experience
-    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
-    // Initialize core services in parallel to save time
-    await Future.wait([
-      Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
-      PrefManager.init(),
-      NotificationService.init(),
-    ]);
-
-    runApp(const ContractorPlatformApp());
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (e) {
-    debugPrint('Fatal Initialization Error: $e');
-    // You could show a specialized error app here if needed
+    debugPrint('Firebase Initialization Error: $e');
   }
+
+  try {
+    await PrefManager.init();
+    await NotificationService.init();
+  } catch (e) {
+    debugPrint('Local Services Error: $e');
+  }
+
+  // تهيئة Sentry وتشغيل التطبيق
+  await SentryFlutter.init((options) {
+    options.dsn =
+        'https://205b0b8b04439c2dcc65700e3e9a78aa@o4511557858623488.ingest.de.sentry.io/4511557860786256';
+    options.tracesSampleRate =
+        0.2; // تقليل النسبة لتحسين الأداء في نسخة Release
+    options.profilesSampleRate = 0.2;
+  }, appRunner: () => runApp(SentryWidget(child: const ContractorPlatformApp())));
 }
 
 class ContractorPlatformApp extends StatelessWidget {
@@ -46,14 +59,10 @@ class ContractorPlatformApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'منصة جسر المدار',
       debugShowCheckedModeBanner: false,
-
-      // Theme Configuration
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
-      // Default to light for consistency with logo colors
 
-      // Localization
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -62,10 +71,8 @@ class ContractorPlatformApp extends StatelessWidget {
       supportedLocales: const [Locale('ar', 'DZ')],
       locale: const Locale('ar', 'DZ'),
 
-      // Dependency Injection
       initialBinding: InitialBinding(),
 
-      // Routing
       initialRoute: '/splash',
       getPages: [
         GetPage(name: '/splash', page: () => const SplashScreen()),
@@ -85,8 +92,6 @@ class ContractorPlatformApp extends StatelessWidget {
           name: '/files_contractor',
           page: () => const ContractorFilesScreen(),
         ),
-
-        // Aliases for dynamic routes
         GetPage(
           name: '/reg_contractor',
           page: () => const ExtraDetailsScreen(),
@@ -98,9 +103,11 @@ class ContractorPlatformApp extends StatelessWidget {
           name: '/reg_equipment_owner',
           page: () => const ExtraDetailsScreen(),
         ),
+        GetPage(
+          name: '/verification_pending',
+          page: () => const VerificationPendingScreen(),
+        ),
       ],
-
-      // Performance Optimization
       defaultTransition: Transition.cupertino,
     );
   }

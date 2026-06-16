@@ -5,7 +5,9 @@ import 'package:al_madar_bridge/controllers/data_controller.dart';
 import 'package:al_madar_bridge/data/mock_firestore.dart';
 import 'package:al_madar_bridge/repositories/auth_repository.dart';
 import 'package:al_madar_bridge/services/pref_manager.dart';
+import 'package:al_madar_bridge/theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class AuthController extends GetxController {
@@ -35,8 +37,14 @@ class AuthController extends GetxController {
     isLoading.value = true;
     clearErrors();
     try {
-      bool success = await _repository.login(email, password);
-      isLoggedIn.value = success;
+      bool success = await _repository.login(email.trim(), password);
+      if (success) {
+        isLoggedIn.value = true;
+        final user = currentUser;
+        if (user != null && user.emailVerified) {
+          await _repository.updateEmailVerificationStatus(user.uid, true);
+        }
+      }
       return success;
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
@@ -56,7 +64,7 @@ class AuthController extends GetxController {
       final userModel = UserDocumentModel(
         firstName: registrationData['firstName'] ?? "",
         lastName: registrationData['lastName'] ?? "",
-        email: registrationData['email'] ?? "",
+        email: (registrationData['email'] ?? "").toString().trim(),
         phone: registrationData['phone'] ?? "",
         wilaya: registrationData['wilaya'] ?? "",
         commune: registrationData['commune'] ?? "",
@@ -73,6 +81,9 @@ class AuthController extends GetxController {
       );
 
       if (success && currentUser != null) {
+        // Send verification email immediately after registration
+        await _repository.sendVerificationEmail();
+        
         final uid = currentUser!.uid;
         Map<String, dynamic> filesMap = {};
 
@@ -122,7 +133,10 @@ class AuthController extends GetxController {
         PrefManager.isProfileCompleted = true;
         PrefManager.registrationStep = 'completed';
         PrefManager.rememberLogin = true;
-        isLoggedIn.value = true;
+        
+        // Don't set isLoggedIn to true yet if we want them to verify first
+        // or just let the UI handle the navigation to verification screen.
+        isLoggedIn.value = currentUser?.emailVerified ?? false;
       }
       return success;
     } on FirebaseAuthException catch (e) {
@@ -156,6 +170,128 @@ class AuthController extends GetxController {
         break;
       default:
         generalError.value = "حدث خطأ: ${e.message}";
+    }
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    isLoading.value = true;
+    try {
+      final status = await _repository.getEmailStatus(email);
+      
+      if (status == null) {
+        Get.snackbar(
+          "تنبيه",
+          "هذا البريد الإلكتروني غير مسجل في المنصة",
+          backgroundColor: Colors.orange.withOpacity(0.8),
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      final bool isEmailVerified = status['isVerified'] == true;
+      final bool isAdminApproved = status['status'] == 'approved';
+
+      if (!isEmailVerified && !isAdminApproved) {
+        Get.snackbar(
+          "حساب غير مفعل",
+          "هذا الحساب موجود ولكن لم يتم تفعيل البريد الإلكتروني أو اعتماده من الإدارة بعد. يرجى تفعيله أولاً.",
+          backgroundColor: Colors.redAccent.withOpacity(0.8),
+          colorText: Colors.white,
+          duration: const Duration(seconds: 5),
+        );
+        return;
+      }
+
+      await _repository.sendPasswordResetEmail(email);
+      Get.snackbar(
+        "تم الإرسال",
+        "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني",
+        backgroundColor: AppTheme.primaryBlue.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar("خطأ", "فشل إرسال البريد. تأكد من صحة العنوان");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> resendVerificationEmail() async {
+    try {
+      await _repository.sendVerificationEmail();
+      Get.snackbar("نجاح", "تم إعادة إرسال رابط التحقق");
+    } catch (e) {
+      Get.snackbar("خطأ", "فشل إعادة الإرسال");
+    }
+  }
+
+  Future<void> reloadUser() async {
+    await _repository.reloadUser();
+  }
+
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
+    isLoading.value = true;
+    try {
+      bool reAuth = await _repository.reauthenticate(currentPassword);
+      if (!reAuth) {
+        Get.snackbar("خطأ", "كلمة المرور الحالية غير صحيحة", backgroundColor: Colors.red, colorText: Colors.white);
+        return false;
+      }
+      bool success = await _repository.updatePassword(newPassword);
+      if (success) {
+        Get.snackbar("نجاح", "تم تغيير كلمة المرور بنجاح", backgroundColor: Colors.green, colorText: Colors.white);
+      }
+      return success;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> changePhone(String currentPassword, String newPhone) async {
+    isLoading.value = true;
+    try {
+      bool reAuth = await _repository.reauthenticate(currentPassword);
+      if (!reAuth) {
+        Get.snackbar("خطأ", "كلمة المرور غير صحيحة", backgroundColor: Colors.red, colorText: Colors.white);
+        return false;
+      }
+      bool success = await _repository.updateAuthPhone(newPhone);
+      if (success) {
+        Get.snackbar("نجاح", "تم تحديث رقم الهاتف بنجاح", backgroundColor: Colors.green, colorText: Colors.white);
+      }
+      return success;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> changeEmail(String currentPassword, String newEmail) async {
+    isLoading.value = true;
+    try {
+      bool reAuth = await _repository.reauthenticate(currentPassword);
+      if (!reAuth) {
+        Get.snackbar("خطأ", "كلمة المرور غير صحيحة", backgroundColor: Colors.red, colorText: Colors.white);
+        return false;
+      }
+      bool success = await _repository.updateAuthEmail(newEmail.trim());
+      if (success) {
+        Get.snackbar(
+          "تم تحديث البريد",
+          "تم إرسال رابط تحقق إلى بريدك الجديد. يرجى تفعيله لتتمكن من الدخول للمنصة مجدداً.",
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 6),
+        );
+        // توجيه المستخدم لصفحة الانتظار لأن حسابه أصبح غير مفعل الآن
+        Future.delayed(const Duration(seconds: 2), () {
+          Get.offAllNamed('/verification_pending');
+        });
+      } else {
+        Get.snackbar("خطأ", "فشل تحديث البريد. قد يكون مستخدماً بالفعل", backgroundColor: Colors.red, colorText: Colors.white);
+      }
+      return success;
+    } finally {
+      isLoading.value = false;
     }
   }
 

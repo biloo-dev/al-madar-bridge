@@ -131,19 +131,39 @@ class _ContractorFilesScreenState extends State<ContractorFilesScreen> {
           f['required'] == true,
     );
 
+    final allFileFields = _dataController.dynamicFields.where(
+      (f) => f['fieldType'] == 'file' || f['fieldType'] == 'multi_file',
+    ).toList();
+
+    if (allFileFields.isEmpty) {
+      if (_dataController.isLoading.value) {
+        Get.snackbar("تنبيه", "يرجى الانتظار حتى تحميل بيانات التسجيل");
+      } else {
+        Get.snackbar("تنبيه", "لا توجد ملفات مطلوبة لهذا النوع حالياً. يرجى التواصل مع الدعم.");
+      }
+      return;
+    }
+
     bool allUploaded = fileFields.every(
       (f) => _authController.selectedFiles.containsKey(f['fieldName']),
     );
 
     if (allUploaded) {
-      final success = await _authController.registerFinal();
-      if (success) {
-        Get.offAllNamed('/home');
-      } else {
-        Get.snackbar("خطأ", "فشل إتمام التسجيل النهائي");
+      try {
+        final success = await _authController.registerFinal();
+        if (success) {
+          Get.offAllNamed('/verification_pending');
+        } else {
+          String error = _authController.generalError.value ?? "فشل إتمام التسجيل";
+          Get.snackbar("خطأ", error, backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        }
+      } catch (e) {
+        print("Navigation/Auth Error: $e");
+        Get.snackbar("خطأ تقني", "حدث خطأ غير متوقع: $e");
       }
     } else {
-      Get.snackbar("تنبيه", "الرجاء اختيار كافة الوثائق المطلوبة");
+      Get.snackbar("تنبيه", "الرجاء اختيار كافة الوثائق المطلوبة المشار إليها بعلامة النجمة", 
+          backgroundColor: Colors.orange.withOpacity(0.8), colorText: Colors.white);
     }
   }
 
