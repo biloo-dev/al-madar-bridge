@@ -78,6 +78,8 @@ class DataController extends GetxController {
   final RxList<Map<String, dynamic>> workLocationTypes =
       <Map<String, dynamic>>[].obs;
 
+  final RxString userStatus = 'pending'.obs;
+
   List<Map<String, dynamic>> get deplomeDTPData => _deplomeDTP;
 
   List<String> get equipmentCategories => equipmentCategoriesList
@@ -99,15 +101,27 @@ class DataController extends GetxController {
       .map((e) => (e['nameAr'] ?? e['name'] ?? '').toString())
       .toList();
 
-  final RxBool isLoading = false.obs;
+  final RxBool isLoading = true.obs;
 
   StreamSubscription? _projectsSubscription;
   StreamSubscription? _newsSubscription;
   StreamSubscription? _filesSubscription;
+  StreamSubscription? _userStatusSubscription;
+  StreamSubscription? _publicRequestsSubscription;
+  StreamSubscription? _myRequestsSubscription;
 
   final Map<String, String> _lastKnownProjectStatus = {};
   final Map<String, String> _lastKnownFileStatus = {};
+  final Map<String, String> _lastKnownRequestStatus = {};
+  String? _lastKnownUserStatus;
   final Set<String> _notifiedNewsIds = {};
+  final Set<String> _notifiedPublicReqIds = {};
+  final Set<String> _knownProjectIds = {};
+
+  bool _isFirstProjectsFetch = true;
+  bool _isFirstPublicReqsFetch = true;
+  bool _isFirstNewsFetch = true;
+  bool _isFirstMyReqsFetch = true;
 
   @override
   void onInit() {
@@ -143,6 +157,9 @@ class DataController extends GetxController {
 
         listenToUserFiles();
         listenToProjects();
+        listenToUserStatus();
+        listenToPublicRequests();
+        listenToMyRequests();
       }
     } catch (e) {
       print('Initial Fetch Error: $e');
@@ -217,15 +234,24 @@ class DataController extends GetxController {
         .listen((docSnapshot) {
           if (!docSnapshot.exists) return;
 
-          final data =
-              docSnapshot.data()?['data']?['files'] as Map<String, dynamic>?;
-          if (data == null) {
+          final root = docSnapshot.data();
+          if (root == null || root['data'] is! Map) {
             userFiles.clear();
             return;
           }
 
+          final filesData = root['data']['files'];
+          if (filesData is! Map) {
+            userFiles.clear();
+            return;
+          }
+
+          final Map<String, dynamic> data = Map<String, dynamic>.from(filesData);
           final List<UserFileDocument> updatedFiles = [];
+
           data.forEach((fieldName, fileInfo) {
+            if (fileInfo is! Map) return;
+
             final List<dynamic> urls = fileInfo['urls'] ?? [];
             final status = fileInfo['status'] ?? 'pending';
             // تعريب التسمية: محاولة الجلب من الحقول الديناميكية أولاً
@@ -281,10 +307,13 @@ class DataController extends GetxController {
   }
 
   Future<void> fetchDynamicFields(String userTypeId) async {
+    isLoading.value = true;
     try {
       dynamicFields.assignAll(await _repository.getDynamicFields(userTypeId));
     } catch (e) {
       print('Dynamic Fields Fetch Error: $e');
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -450,22 +479,165 @@ class DataController extends GetxController {
               .toList();
 
           for (var project in updatedProjects) {
+            // 1. تشخيص هل المشروع جديد كلياً
+            if (!_isFirstProjectsFetch && !_knownProjectIds.contains(project.id)) {
+              NotificationService.showNotification(
+                id: project.id.hashCode,
+                title: "مشروع جديد 🏗️",
+                body: "تم إسناد مشروع جديد لك: ${project.projectName}",
+              );
+            }
+            _knownProjectIds.add(project.id);
+
+            // 2. تشخيص هل تغيرت حالة المشروع
             final lastStatus = _lastKnownProjectStatus[project.id];
-            if (lastStatus != null && lastStatus != project.status) {
+            if (!_isFirstProjectsFetch && lastStatus != null && lastStatus != project.status) {
               final statusInfo = projectStatuses.firstWhereOrNull(
                 (s) => s.id == project.status,
               );
               NotificationService.showNotification(
                 id: project.id.hashCode,
-                title: "تحديث في المشروع",
-                body:
-                    "المشروع '${project.projectName}' أصبح بحالة: ${statusInfo?.nameAr ?? project.status}",
+                title: "تحديث في حالة المشروع",
+                body: "المشروع '${project.projectName}' أصبح بحالة: ${statusInfo?.nameAr ?? project.status}",
               );
             }
             _lastKnownProjectStatus[project.id] = project.status;
           }
+          _isFirstProjectsFetch = false;
           projects.assignAll(updatedProjects);
         });
+  }
+
+  void listenToPublicRequests() {
+    _publicRequestsSubscription?.cancel();
+    _publicRequestsSubscription = FirebaseFirestore.instance
+        .collection('requests')
+        .where('status', isEqualTo: 'accepted')
+        .orderBy('createdAt', descending: true)
+        .limit(10)
+        .snapshots()
+        .listen((snapshot) {
+          final updatedRequests = snapshot.docs
+              .map((doc) => RequestDocument.fromMap(doc.data(), doc.id))
+              .toList();
+
+          for (var req in updatedRequests) {
+            if (!_isFirstPublicReqsFetch &&
+                !publicRequests.any((existing) => existing.id == req.id) &&
+                !_notifiedPublicReqIds.contains(req.id)) {
+              final type = requestTypes.firstWhereOrNull((t) => t.id == req.requestTypeId);
+
+              NotificationService.showNotification(
+                id: req.id.hashCode,
+                title: "إعلان جديد 📢",
+                body: "${type?.nameAr ?? 'طلب جديد'}: ${req.title}",
+              );
+              _notifiedPublicReqIds.add(req.id);
+            } else if (_isFirstPublicReqsFetch) {
+              _notifiedPublicReqIds.add(req.id);
+            }
+          }
+
+          _isFirstPublicReqsFetch = false;
+          publicRequests.assignAll(updatedRequests);
+        });
+  }
+
+  void listenToMyRequests() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    _myRequestsSubscription?.cancel();
+    _myRequestsSubscription = FirebaseFirestore.instance
+        .collection('requests')
+        .where('createdBy', isEqualTo: user.uid)
+        .snapshots()
+        .listen((snapshot) {
+          final updatedRequests = snapshot.docs
+              .map((doc) => RequestDocument.fromMap(doc.data(), doc.id))
+              .toList();
+
+          for (var req in updatedRequests) {
+            final lastStatus = _lastKnownRequestStatus[req.id];
+            if (!_isFirstMyReqsFetch && lastStatus != null && lastStatus != req.status) {
+              String statusLabel = req.status == 'accepted' ? "مقبول ✅" : (req.status == 'rejected' ? "مرفوض ❌" : req.status);
+              
+              NotificationService.showNotification(
+                id: req.id.hashCode,
+                title: "تحديث حالة طلبك",
+                body: "تم تغيير حالة طلبك '${req.title}' إلى: $statusLabel",
+              );
+            }
+            _lastKnownRequestStatus[req.id] = req.status;
+          }
+          _isFirstMyReqsFetch = false;
+          myRequests.assignAll(updatedRequests);
+        });
+  }
+
+  void listenToUserStatus() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    _userStatusSubscription?.cancel();
+    _userStatusSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .listen((docSnapshot) {
+      if (!docSnapshot.exists) {
+        _forceLogout("تم حذف حسابك من قبل الإدارة.");
+        return;
+      }
+
+      final data = docSnapshot.data();
+      final status = data?['status'] ?? 'pending';
+      userStatus.value = status;
+      PrefManager.userStatus = status;
+
+      // Detect status change
+      if (_lastKnownUserStatus != null && _lastKnownUserStatus != status) {
+        if (status == 'approved') {
+          NotificationService.showNotification(
+            id: 999,
+            title: "تهانينا! 🎉",
+            body: "تم اعتماد حسابك بنجاح. يمكنك الآن الاستمتاع بكافة مميزات المنصة.",
+          );
+        } else if (status == 'rejected') {
+          final reason = data?['rejectionReason'] ?? "يرجى التواصل مع الدعم الفني.";
+          NotificationService.showNotification(
+            id: 998,
+            title: "تنبيه بخصوص حسابك",
+            body: "عذراً، تم رفض طلب اعتماد حسابك. السبب: $reason",
+          );
+        }
+      }
+      
+      _lastKnownUserStatus = status;
+
+      if (status == 'rejected') {
+        _forceLogout("تم رفض حسابك من قبل الإدارة. يرجى التواصل مع الدعم.");
+      }
+    });
+  }
+
+  void _forceLogout(String message) {
+    final authController = Get.find<AuthController>();
+    
+    // إلغاء كافة الاشتراكات فوراً
+    onClose(); 
+    
+    // تسجيل الخروج والتوجه لصفحة الدخول مع رسالة
+    authController.logout();
+    
+    Get.snackbar(
+      "تنبيه هام",
+      message,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 10),
+      snackPosition: SnackPosition.TOP,
+    );
   }
 
   Future<void> incrementNewsViews(String newsId) async =>
@@ -504,6 +676,9 @@ class DataController extends GetxController {
     _projectsSubscription?.cancel();
     _newsSubscription?.cancel();
     _filesSubscription?.cancel();
+    _userStatusSubscription?.cancel();
+    _publicRequestsSubscription?.cancel();
+    _myRequestsSubscription?.cancel();
     super.onClose();
   }
 }

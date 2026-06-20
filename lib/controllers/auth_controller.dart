@@ -296,9 +296,31 @@ class AuthController extends GetxController {
   }
 
   void logout() async {
+    // 1. Get user type before clearing preferences
+    final String userType = PrefManager.userType;
+    final dataController = Get.find<DataController>();
+
+    // 2. Clear session
     await _repository.logout();
     isLoggedIn.value = false;
-    Get.offAllNamed('/login');
+
+    // 3. Navigate back based on previous user type
+    if (userType.isNotEmpty && dataController.onboardingPages.isNotEmpty) {
+      final pages = dataController.onboardingPages
+          .where((e) => e["id"] != "start_page")
+          .toList();
+
+      int index = pages.indexWhere((p) => p['id'] == userType);
+
+      if (index != -1) {
+        // Return to the specific detail page (which now has login fields)
+        Get.offAllNamed('/onboarding_detail', arguments: index);
+        return;
+      }
+    }
+
+    // Fallback to start page
+    Get.offAllNamed('/onboarding');
   }
 
   Future<void> fetchUserProfile() async {

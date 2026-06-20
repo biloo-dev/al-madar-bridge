@@ -1,6 +1,7 @@
 import 'package:al_madar_bridge/bindings/initial_binding.dart';
 import 'package:al_madar_bridge/firebase_options.dart';
 import 'package:al_madar_bridge/screens/onboarding_screen.dart';
+import 'package:al_madar_bridge/screens/onboarding_detail_screen.dart';
 import 'package:al_madar_bridge/screens/registration/contractor_files_screen.dart';
 import 'package:al_madar_bridge/screens/registration/extra_details_screen.dart';
 import 'package:al_madar_bridge/screens/registration/verification_pending_screen.dart';
@@ -73,10 +74,25 @@ class ContractorPlatformApp extends StatelessWidget {
 
       initialBinding: InitialBinding(),
 
+      // Global Builder to fix Font Scaling issues
+      builder: (context, child) {
+        return MediaQuery(
+          // Capping text scale factor to 1.2 to prevent UI breakage
+          data: MediaQuery.of(context).copyWith(
+            textScaler: MediaQuery.of(context).textScaler.clamp(
+              minScaleFactor: 0.8,
+              maxScaleFactor: 1.2,
+            ),
+          ),
+          child: child!,
+        );
+      },
+
       initialRoute: '/splash',
       getPages: [
         GetPage(name: '/splash', page: () => const SplashScreen()),
         GetPage(name: '/onboarding', page: () => const OnboardingScreen()),
+        GetPage(name: '/onboarding_detail', page: () => OnboardingDetailScreen()),
         GetPage(name: '/login', page: () => const LoginScreen()),
         GetPage(name: '/register', page: () => const RegisterScreen()),
         GetPage(

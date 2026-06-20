@@ -1,8 +1,8 @@
 import 'package:al_madar_bridge/controllers/auth_controller.dart';
 import 'package:al_madar_bridge/controllers/data_controller.dart'
     show DataController;
-import 'package:al_madar_bridge/screens/widgets/BuildHeader.dart';
 import 'package:al_madar_bridge/screens/widgets/searchable_dropdown_field.dart';
+import 'package:al_madar_bridge/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -32,12 +32,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    // Wilayas are fetched automatically in DataController.onInit()
-    
-    // Set initial user type from arguments if provided
     if (Get.arguments != null) {
       _selectedUserTypeId = Get.arguments.toString();
     }
+  }
+
+  Color _getThemeColor() {
+    switch (_selectedUserTypeId?.toLowerCase()) {
+      case 'contractor':
+        return const Color(0xFFD48D3B);
+      case 'investor':
+        return const Color(0xFF4CAF50);
+      case 'equipment_owner':
+        return const Color(0xFF2196F3);
+      case 'supplier':
+        return const Color(0xFF673AB7);
+      case 'craftsman':
+        return const Color(0xFFFFC107);
+      default:
+        return AppTheme.primaryBlue;
+    }
+  }
+
+  String _getUserTypeImage() {
+    String id = _selectedUserTypeId?.toLowerCase() ?? 'contractor';
+    return "assets/userType/$id.png";
   }
 
   void _next() {
@@ -45,7 +64,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _selectedUserTypeId != null &&
         _selectedWilayaId != null &&
         _selectedCommuneId != null) {
-      // Save data to AuthController instead of creating account now
       _authController.registrationData.addAll({
         'firstName': _firstNameController.text,
         'lastName': _lastNameController.text,
@@ -57,21 +75,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'userType': _selectedUserTypeId!,
       });
       _authController.registrationPassword = _passwordController.text;
-
-      // Navigate to the extra details screen
       Get.toNamed('/reg_extra_details');
+    } else if (_selectedUserTypeId == null || _selectedWilayaId == null || _selectedCommuneId == null) {
+      Get.snackbar("تنبيه", "يرجى إكمال كافة الاختيارات", snackPosition: SnackPosition.BOTTOM);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = _getThemeColor();
+    
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFD6EEF8), Colors.white],
+            colors: [themeColor.withOpacity(0.2), Colors.white],
           ),
         ),
         child: SafeArea(
@@ -79,12 +99,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                BuildHeader(
-                  icon: Icons.person_add_alt_1,
-                  title: "إنشاء حساب جديد",
-                  subtitle: "المرحلة الأولى من التسجيل",
-                  showBackButton: true, // Assuming BuildHeader supports it or just use a Leading icon
+                // Custom Header with User Type Image
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    onPressed: () => Get.back(),
+                    icon: Icon(Icons.arrow_back_ios, color: themeColor),
+                  ),
                 ),
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: themeColor.withOpacity(.12),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      _getUserTypeImage(),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.person_add_alt_1,
+                        size: 42,
+                        color: themeColor,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "إنشاء حساب جديد",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "المرحلة الأولى من التسجيل",
+                  style: TextStyle(
+                    color: AppTheme.textMedium,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 28),
+
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -104,9 +165,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         TextFormField(
                           controller: _firstNameController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: "الاسم",
-                            prefixIcon: Icon(Icons.person_outline),
+                            prefixIcon: Icon(Icons.person_outline, color: themeColor),
                           ),
                           validator: (v) =>
                               (v == null || v.isEmpty) ? "مطلوب" : null,
@@ -114,9 +175,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 18),
                         TextFormField(
                           controller: _lastNameController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: "اللقب",
-                            prefixIcon: Icon(Icons.badge_outlined),
+                            prefixIcon: Icon(Icons.badge_outlined, color: themeColor),
                           ),
                           validator: (v) =>
                               (v == null || v.isEmpty) ? "مطلوب" : null,
@@ -124,9 +185,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 18),
                         TextFormField(
                           controller: _addressController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: "العنوان الكامل",
-                            prefixIcon: Icon(Icons.location_on_outlined),
+                            prefixIcon: Icon(Icons.location_on_outlined, color: themeColor),
                           ),
                           validator: (v) =>
                               (v == null || v.isEmpty) ? "مطلوب" : null,
@@ -137,7 +198,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             hintText: "البريد الإلكتروني",
-                            prefixIcon: const Icon(Icons.email_outlined),
+                            prefixIcon: Icon(Icons.email_outlined, color: themeColor),
                             errorText: _authController.emailError.value,
                           ),
                           onChanged: (v) {
@@ -152,9 +213,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: "رقم الهاتف",
-                            prefixIcon: Icon(Icons.phone),
+                            prefixIcon: Icon(Icons.phone, color: themeColor),
                           ),
                           validator: (v) =>
                               (v == null || v.isEmpty) ? "مطلوب" : null,
@@ -165,7 +226,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: true,
                           decoration: InputDecoration(
                             hintText: "كلمة المرور",
-                            prefixIcon: const Icon(Icons.lock_outline),
+                            prefixIcon: Icon(Icons.lock_outline, color: themeColor),
                             errorText: _authController.passwordError.value,
                           ),
                           onChanged: (v) {
@@ -208,14 +269,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   : "اختر البلدية",
                             )),
                         const SizedBox(height: 18),
-                        Obx(() => SearchableDropdownField(
-                              label: "نوع الحساب",
-                              icon: Icons.business_center,
-                              items: _dataController.userTypes.toList(),
-                              selectedValue: _selectedUserTypeId,
-                              onChanged: (value) => setState(
-                                  () => _selectedUserTypeId = value.toString()),
-                            )),
+                        // Only show user type selection if it wasn't pre-selected
+                        if (_selectedUserTypeId == null)
+                          Obx(() => SearchableDropdownField(
+                                label: "نوع الحساب",
+                                icon: Icons.business_center,
+                                items: _dataController.userTypes.toList(),
+                                selectedValue: _selectedUserTypeId,
+                                onChanged: (value) => setState(
+                                    () => _selectedUserTypeId = value.toString()),
+                              )),
                         Obx(
                           () => _authController.generalError.value != null
                               ? Padding(
@@ -235,7 +298,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 120), // Space for FAB
+                const SizedBox(height: 120),
               ],
             ),
           ),
@@ -249,6 +312,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             height: 56,
             child: ElevatedButton(
               onPressed: _authController.isLoading.value ? null : _next,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: themeColor,
+              ),
               child: _authController.isLoading.value
                   ? const CircularProgressIndicator(color: Colors.white)
                   : const Row(
@@ -259,10 +325,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                         SizedBox(width: 8),
-                        Icon(Icons.arrow_forward),
+                        Icon(Icons.arrow_forward, color: Colors.white),
                       ],
                     ),
             ),

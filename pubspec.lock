@@ -419,14 +419,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.35"
-  flutter_sliding_tutorial:
-    dependency: "direct main"
-    description:
-      name: flutter_sliding_tutorial
-      sha256: e8687f59bb1bdc4fc570b671456af50ae9e868b3dc0a4b762319f221cd185fe9
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.0"
   flutter_svg:
     dependency: "direct main"
     description:
@@ -589,6 +581,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.20.2"
+  intro_views_flutter:
+    dependency: "direct main"
+    description:
+      name: intro_views_flutter
+      sha256: "08dfee202ad72efc2d32377ccd3cab1c42d4c68863e877a311491af628ac24dd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.0"
   jni:
     dependency: transitive
     description:

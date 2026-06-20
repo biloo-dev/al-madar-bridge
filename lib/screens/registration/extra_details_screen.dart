@@ -1,10 +1,10 @@
 import 'package:al_madar_bridge/controllers/auth_controller.dart';
 import 'package:al_madar_bridge/controllers/data_controller.dart';
 import 'package:al_madar_bridge/screens/widgets/BuildCard.dart';
-import 'package:al_madar_bridge/screens/widgets/BuildHeader.dart';
 import 'package:al_madar_bridge/screens/widgets/gender_selection_field.dart';
 import 'package:al_madar_bridge/screens/widgets/searchable_dropdown_field.dart';
 import 'package:al_madar_bridge/services/pref_manager.dart';
+import 'package:al_madar_bridge/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -57,6 +57,31 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
     }
   }
 
+  Color _getThemeColor() {
+    final userType = _authController.registrationData['userType'] ?? PrefManager.userType;
+    switch (userType.toLowerCase()) {
+      case 'contractor':
+        return const Color(0xFFD48D3B);
+      case 'investor':
+        return const Color(0xFF4CAF50);
+      case 'equipment_owner':
+        return const Color(0xFF2196F3);
+      case 'supplier':
+        return const Color(0xFF673AB7);
+      case 'craftsman':
+        return const Color(0xFFFFC107);
+      default:
+        return AppTheme.primaryBlue;
+    }
+  }
+
+  String _getUserTypeImage() {
+    final userType = _authController.registrationData['userType'] ?? PrefManager.userType;
+    String id = userType.toLowerCase();
+    if (id.isEmpty) id = 'contractor';
+    return "assets/userType/$id.png";
+  }
+
   void _save() async {
     if (_formKey.currentState!.validate()) {
       _authController.extraData.clear();
@@ -87,13 +112,15 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = _getThemeColor();
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFD6EEF8), Colors.white],
+            colors: [themeColor.withOpacity(0.2), Colors.white],
           ),
         ),
         child: SafeArea(
@@ -101,12 +128,51 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                const BuildHeader(
-                  icon: Icons.assignment_outlined,
-                  title: "تفاصيل النشاط",
-                  subtitle: "المرحلة الثانية: معلومات إضافية",
-                  showBackButton: true,
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    onPressed: () => Get.back(),
+                    icon: Icon(Icons.arrow_back_ios, color: themeColor),
+                  ),
                 ),
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: themeColor.withOpacity(.12),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      _getUserTypeImage(),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.assignment_outlined,
+                        size: 42,
+                        color: themeColor,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "تفاصيل النشاط",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "المرحلة الثانية: معلومات إضافية",
+                  style: TextStyle(
+                    color: AppTheme.textMedium,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 28),
                 Obx(() {
                   if (_dataController.isLoading.value) {
                     return const Center(
@@ -135,12 +201,10 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
                           const Text("لا توجد حقول إضافية"),
                           TextButton(
                             onPressed: () {
-                              final uType =
-                                  _authController
-                                      .registrationData['userType'] ??
-                                  PrefManager.userType;
-                              if (uType.isNotEmpty)
+                              final uType = _authController.registrationData['userType'] ?? PrefManager.userType;
+                              if (uType.isNotEmpty) {
                                 _dataController.fetchDynamicFields(uType);
+                              }
                             },
                             child: const Text("إعادة المحاولة"),
                           ),
@@ -155,7 +219,7 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
                         key: _formKey,
                         child: Column(
                           children: fields
-                              .map((field) => _buildField(field))
+                              .map((field) => _buildField(field, themeColor))
                               .toList(),
                         ),
                       ),
@@ -176,14 +240,17 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
           height: 56,
           child: ElevatedButton(
             onPressed: _save,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: themeColor,
+            ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   "المتابعة لرفع الوثائق",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
                 ),
-                Icon(Icons.arrow_forward),
+                Icon(Icons.arrow_forward, color: Colors.white),
               ],
             ),
           ),
@@ -193,7 +260,7 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
     );
   }
 
-  Widget _buildField(Map<String, dynamic> field) {
+  Widget _buildField(Map<String, dynamic> field, Color themeColor) {
     final String type = field['fieldType'] ?? 'text';
     final String name = field['fieldName'] ?? '';
     final String label = field['fieldLabel_ar'] ?? field['fieldLabel'] ?? '';
@@ -224,7 +291,7 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
             maxLines: type == 'textarea' ? 3 : 1,
             decoration: InputDecoration(
               labelText: label,
-              prefixIcon: Icon(_getIcon(field['icon'])),
+              prefixIcon: Icon(_getIcon(field['icon']), color: themeColor),
             ),
             onChanged: (v) => _fieldValues[name] = v,
             validator: (v) =>
@@ -233,27 +300,29 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
         );
       case 'select':
       case 'radio':
+      case 'radion':
         return Padding(
           padding: const EdgeInsets.only(bottom: 18),
-          child: _buildSelectField(field),
+          child: _buildSelectField(field, themeColor),
         );
       case 'multi_select':
       case 'checkbox':
-        return _buildMultiSelect(field);
+        return _buildMultiSelect(field, themeColor);
       case 'boolean':
         return SwitchListTile(
           title: Text(label),
+          activeColor: themeColor,
           value: _fieldValues[name] ?? false,
           onChanged: (v) => setState(() => _fieldValues[name] = v),
         );
       case 'date':
-        return _buildDatePicker(field);
+        return _buildDatePicker(field, themeColor);
       default:
         return const SizedBox.shrink();
     }
   }
 
-  Widget _buildMultiSelect(Map<String, dynamic> field) {
+  Widget _buildMultiSelect(Map<String, dynamic> field, Color themeColor) {
     final name = field['fieldName'] as String;
     final label = field['fieldLabel_ar'] ?? field['fieldLabel'] ?? '';
     final sourceKey = field['dataSource'] as String?;
@@ -268,7 +337,7 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
     );
   }
 
-  Widget _buildSelectField(Map<String, dynamic> field) {
+  Widget _buildSelectField(Map<String, dynamic> field, Color themeColor) {
     final String name = field['fieldName'];
     final String label = field['fieldLabel_ar'] ?? field['fieldLabel'] ?? '';
     final String dataSource = field['dataSource'] ?? '';
@@ -300,7 +369,7 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
     );
   }
 
-  Widget _buildDatePicker(Map<String, dynamic> field) {
+  Widget _buildDatePicker(Map<String, dynamic> field, Color themeColor) {
     final name = field['fieldName'] as String;
     final label = field['fieldLabel_ar'] ?? field['fieldLabel'] ?? '';
 
@@ -313,6 +382,16 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
             initialDate: DateTime.now(),
             firstDate: DateTime(1950),
             lastDate: DateTime(2100),
+            builder: (context, child) {
+              return Theme(
+                data: Theme.of(context).copyWith(
+                  colorScheme: ColorScheme.light(
+                    primary: themeColor,
+                  ),
+                ),
+                child: child!,
+              );
+            },
           );
           if (date != null)
             setState(() => _fieldValues[name] = date.toIso8601String());
@@ -320,7 +399,7 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: label,
-            prefixIcon: const Icon(Icons.calendar_today),
+            prefixIcon: Icon(Icons.calendar_today, color: themeColor),
           ),
           child: Text(
             _fieldValues[name] != null
@@ -343,7 +422,6 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
         return _dataController.supplierCategories;
       case 'supplierSubCategories':
       case 'supplierSubcategories':
-        // البحث عن قيمة الصنف الرئيسي المختار
         String? parentCatId;
         for (var f in _dataController.dynamicFields) {
           if (f['dataSource'] == 'supplierCategories') {
@@ -351,11 +429,10 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
             break;
           }
         }
-        if (parentCatId == null) return [];
-        // تصفية الأصناف الفرعية بناءً على ID الصنف الرئيسي
+        if (parentCatId == null) return _dataController.supplierSubcategories;
+
         return _dataController.supplierSubcategories.where((sub) {
-          final subCatId = (sub['categoryId'] ?? sub['category_id'])
-              ?.toString();
+          final subCatId = (sub['categoryId'] ?? sub['category_id'])?.toString();
           return subCatId == parentCatId;
         }).toList();
       case 'genders':
@@ -420,7 +497,6 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
       if (value != null) await _dataController.fetchCommunes(value.toString());
       if (mounted) setState(() => _isLoadingCommunes = false);
     }
-    // إضافة الربط لأصناف الموردين
     if (dataSource == 'supplierCategories') {
       String? subCatFieldName;
       for (var f in _dataController.dynamicFields) {
@@ -440,12 +516,17 @@ class _ExtraDetailsScreenState extends State<ExtraDetailsScreen> {
 
   IconData _getIcon(String? iconName) {
     if (iconName == null) return Icons.edit;
-    if (iconName.contains('apartment')) return Icons.apartment;
-    if (iconName.contains('tune')) return Icons.tune;
-    if (iconName.contains('bar_chart')) return Icons.bar_chart;
-    if (iconName.contains('location')) return Icons.location_on;
-    if (iconName.contains('business')) return Icons.business;
-    if (iconName.contains('school')) return Icons.school;
+    String name = iconName.toLowerCase();
+    if (name.contains('apartment')) return Icons.apartment;
+    if (name.contains('tune')) return Icons.tune;
+    if (name.contains('bar_chart')) return Icons.bar_chart;
+    if (name.contains('location')) return Icons.location_on;
+    if (name.contains('business')) return Icons.business;
+    if (name.contains('school')) return Icons.school;
+    if (name.contains('construction')) return Icons.construction;
+    if (name.contains('receipt')) return Icons.receipt_long;
+    if (name.contains('workspace')) return Icons.workspace_premium;
+    if (name.contains('registre')) return Icons.badge;
     return Icons.edit;
   }
 }

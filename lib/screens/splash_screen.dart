@@ -1,5 +1,4 @@
 import 'package:al_madar_bridge/theme/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -19,9 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToNext() async {
-    await Future.delayed(const Duration(seconds: 2));
-
-    // التوجه دائماً لواجهة الترحيب أولاً كما طلب المستخدم
+    await Future.delayed(const Duration(seconds: 3));
     Get.offAllNamed('/onboarding');
   }
 
@@ -36,16 +33,13 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFD6EEF8),
-              Colors.white,
-            ],
+            colors: [Color(0xFFD6EEF8), Colors.white],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              const Spacer(),
+              const Spacer(flex: 2),
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -82,55 +76,99 @@ class _SplashScreenState extends State<SplashScreen> {
                       'assets/logo.svg',
                       width: 90,
                       height: 90,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Image.asset('assets/logo.png', width: 90, height: 90),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 40),
               Text(
-                "منصة تدقيق وعقود المقاولين",
+                "جســــر المـــدار",
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  color: AppTheme.primaryBlue,
+                  color: const Color(0xFF034D74),
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                "منصة رقمية موحدة للرقابة والمطابقة الفنية",
+              const SizedBox(height: 12),
+              const Text(
+                "منصة تدقيق وتوثيق عقود المتعاملين",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textMedium,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 6),
+              const Text(
+                "قطاع الأشغال العمومية",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 40),
               const SizedBox(
-                width: 30,
-                height: 30,
+                width: 36,
+                height: 36,
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
                   color: AppTheme.accentOrange,
                 ),
               ),
-              const Spacer(),
+              const Spacer(flex: 3),
               Padding(
-                padding: const EdgeInsets.only(bottom: 32),
+                padding: const EdgeInsets.only(bottom: 24),
                 child: Column(
                   children: [
                     const Text(
                       "AL MADAR BRIDGE",
                       style: TextStyle(
-                        letterSpacing: 2,
+                        letterSpacing: 1.5,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryBlue,
+                        color: Color(0xFF034D74),
+                        fontSize: 16,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "Digital Contractor Platform",
+                    const SizedBox(height: 4),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Digital",
+                          style: TextStyle(
+                            color: AppTheme.textMedium,
+                            fontSize: 13,
+                          ),
+                        ),
+                        SizedBox(width: 40),
+                        Text(
+                          "Platform",
+                          style: TextStyle(
+                            color: AppTheme.textMedium,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "CONTRACTORS • SUPPLIERS • INVESTORS",
                       style: TextStyle(
-                        color: AppTheme.textMedium,
-                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF034D74),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Text(
+                      "• PROFESSIONALS & CRAFTSMEN",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF034D74),
+                        fontSize: 11,
                       ),
                     ),
                   ],

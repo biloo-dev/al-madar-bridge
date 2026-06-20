@@ -21,11 +21,15 @@ class NewsTab extends StatelessWidget {
         return const Center(child: Text("لا توجد أخبار حالياً"));
       }
 
+      final newsItems = dataController.newsList.toList();
+      // تأكيد الترتيب: الأحدث أولاً
+      newsItems.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+
       return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: dataController.newsList.length,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // حشو سفلي إضافي
+        itemCount: newsItems.length,
         itemBuilder: (context, idx) {
-          final item = dataController.newsList[idx];
+          final item = newsItems[idx];
           return GestureDetector(
             onTap: () => Get.to(() => NewsDetailScreen(news: item)),
             child: Card(

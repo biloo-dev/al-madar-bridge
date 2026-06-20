@@ -257,210 +257,237 @@ class _LoginScreenState extends State<LoginScreen> {
               colors: [Color(0xFFD6EEF8), Colors.white],
             ),
           ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
-                  Stack(
-                    alignment: Alignment.center,
+          child: Stack(
+            children: [
+              SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
                     children: [
-                      Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.primaryBlue.withOpacity(.08),
-                        ),
-                      ),
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.primaryBlue.withOpacity(.12),
-                        ),
-                      ),
-                      Container(
-                        width: 74,
-                        height: 74,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primaryBlue,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.lock_person,
-                          size: 38,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  Text(
-                    "سجل الدخول للمنصة",
-                    style: theme.textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "بوابة المقاولين والموردين والحرفيين",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.textMedium, fontSize: 14),
-                  ),
-                  const SizedBox(height: 40),
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(.05),
-                          blurRadius: 30,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
+                      const SizedBox(height: 40),
+                      Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Obx(
-                            () => TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: InputDecoration(
-                                hintText: "البريد الإلكتروني",
-                                prefixIcon: const Icon(Icons.email_outlined),
-                                filled: true,
-                                fillColor: AppTheme.lightSurface,
-                                errorText: _authController.emailError.value,
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return "أدخل البريد الإلكتروني";
-                                }
-                                return null;
-                              },
-                              onChanged: (_) =>
-                                  _authController.emailError.value = null,
+                          Container(
+                            width: 140,
+                            height: 140,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.primaryBlue.withOpacity(.08),
                             ),
                           ),
-                          const SizedBox(height: 18),
-                          Obx(
-                            () => TextFormField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              decoration: InputDecoration(
-                                hintText: "كلمة المرور",
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                errorText: _authController.passwordError.value,
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.primaryBlue.withOpacity(.12),
+                            ),
+                          ),
+                          Container(
+                            width: 74,
+                            height: 74,
+                            decoration: const BoxDecoration(
+                              color: AppTheme.primaryBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.lock_person,
+                              size: 38,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        "سجل الدخول للمنصة",
+                        style: theme.textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "بوابة المقاولين والموردين والحرفيين",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppTheme.textMedium, fontSize: 14),
+                      ),
+                      const SizedBox(height: 40),
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(.05),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              Obx(
+                                () => TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: InputDecoration(
+                                    hintText: "البريد الإلكتروني",
+                                    prefixIcon: const Icon(Icons.email_outlined),
+                                    filled: true,
+                                    fillColor: AppTheme.lightSurface,
+                                    errorText: _authController.emailError.value,
                                   ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    });
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return "أدخل البريد الإلكتروني";
+                                    }
+                                    return null;
                                   },
+                                  onChanged: (_) =>
+                                      _authController.emailError.value = null,
                                 ),
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return "أدخل كلمة المرور";
-                                }
-                                return null;
-                              },
-                              onChanged: (_) =>
-                                  _authController.passwordError.value = null,
-                            ),
-                          ),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed: _showForgotPasswordDialog,
-                              child: const Text(
-                                "نسيت كلمة المرور؟",
-                                style: TextStyle(
-                                  color: AppTheme.accentOrange,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Obx(
-                            () => _authController.generalError.value != null
-                                ? Padding(
-                                    padding: const EdgeInsets.only(top: 10),
-                                    child: Text(
-                                      _authController.generalError.value!,
-                                      style: const TextStyle(
-                                        color: Colors.red,
-                                        fontSize: 12,
+                              const SizedBox(height: 18),
+                              Obx(
+                                () => TextFormField(
+                                  controller: _passwordController,
+                                  obscureText: _obscurePassword,
+                                  decoration: InputDecoration(
+                                    hintText: "كلمة المرور",
+                                    prefixIcon: const Icon(Icons.lock_outline),
+                                    errorText: _authController.passwordError.value,
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
                                       ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscurePassword = !_obscurePassword;
+                                        });
+                                      },
                                     ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          const SizedBox(height: 28),
-                          Obx(
-                            () => SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: _authController.isLoading.value
-                                    ? null
-                                    : _submit,
-                                child: _authController.isLoading.value
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return "أدخل كلمة المرور";
+                                    }
+                                    return null;
+                                  },
+                                  onChanged: (_) =>
+                                      _authController.passwordError.value = null,
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: TextButton(
+                                  onPressed: _showForgotPasswordDialog,
+                                  child: const Text(
+                                    "نسيت كلمة المرور؟",
+                                    style: TextStyle(
+                                      color: AppTheme.accentOrange,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Obx(
+                                () => _authController.generalError.value != null
+                                    ? Padding(
+                                        padding: const EdgeInsets.only(top: 10),
+                                        child: Text(
+                                          _authController.generalError.value!,
+                                          style: const TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 12,
+                                          ),
                                         ),
                                       )
-                                    : const Text(
-                                        "تسجيل الدخول",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                    : const SizedBox.shrink(),
+                              ),
+                              const SizedBox(height: 28),
+                              Obx(
+                                () => SizedBox(
+                                  width: double.infinity,
+                                  height: 56,
+                                  child: ElevatedButton(
+                                    onPressed: _authController.isLoading.value
+                                        ? null
+                                        : _submit,
+                                    child: _authController.isLoading.value
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text(
+                                            "تسجيل الدخول",
+                                            style: TextStyle(
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "ليس لديك حساب؟",
+                            style: TextStyle(color: AppTheme.textMedium),
+                          ),
+                          TextButton(
+                            onPressed: () => Get.toNamed('/register'),
+                            child: const Text(
+                              "إنشاء حساب",
+                              style: TextStyle(
+                                color: AppTheme.accentOrange,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 26),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "ليس لديك حساب؟",
-                        style: TextStyle(color: AppTheme.textMedium),
-                      ),
-                      TextButton(
-                        onPressed: () => Get.toNamed('/register'),
-                        child: const Text(
-                          "إنشاء حساب",
+                      const SizedBox(height: 10),
+                      TextButton.icon(
+                        onPressed: () => Get.offAllNamed('/onboarding'),
+                        icon: const Icon(Icons.home_outlined, size: 20, color: Colors.grey),
+                        label: const Text(
+                          "العودة لصفحة البداية",
                           style: TextStyle(
-                            color: AppTheme.accentOrange,
-                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                            fontSize: 14,
                           ),
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                right: 10,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_rounded,
+                    color: AppTheme.primaryBlue,
+                  ),
+                  onPressed: () => Get.offAllNamed('/onboarding'),
+                ),
+              ),
+            ],
           ),
         ),
       ),

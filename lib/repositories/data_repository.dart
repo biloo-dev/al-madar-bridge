@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -18,13 +19,18 @@ class DataRepository {
     if (user == null) return [];
 
     final doc = await _db.collection('users').doc(user.uid).get();
-    if (!doc.exists) return [];
+    final root = doc.data();
+    if (root == null || root['data'] is! Map) return [];
 
-    final data = doc.data()?['data']?['files'] as Map<String, dynamic>?;
-    if (data == null) return [];
+    final filesData = root['data']['files'];
+    if (filesData is! Map) return [];
 
+    final Map<String, dynamic> data = Map<String, dynamic>.from(filesData);
     final List<UserFileDocument> files = [];
+
     data.forEach((fieldName, fileInfo) {
+      if (fileInfo is! Map) return;
+
       final List<dynamic> urls = fileInfo['urls'] ?? [];
       for (var url in urls) {
         files.add(
@@ -266,14 +272,65 @@ class DataRepository {
   }
 
   Future<List<Map<String, dynamic>>> getDynamicFields(String userTypeId) async {
-    final doc = await _db.collection('dynamic_fields').doc('default').get();
-    final data = doc.data();
-    if (data == null) return [];
-    dynamic rawFields = data[userTypeId] ?? data["${userTypeId}_fields"];
-    if (rawFields == null || rawFields is! List) return [];
-    return List<Map<String, dynamic>>.from(
-      rawFields.map((e) => Map<String, dynamic>.from(e)),
-    );
+    try {
+      final doc = await _db.collection('dynamic_fields').doc('default').get();
+      if (!doc.exists) {
+        print('❌ Document dynamic_fields/default not found');
+        return [];
+      }
+
+      final rootData = doc.data();
+      if (rootData == null) return [];
+
+      // تنظيف المعرف للبحث
+      String id = userTypeId.trim().toLowerCase().replaceAll('_onboarding', '');
+      List<String> fieldKeys = [id, "${id}_fields"];
+
+      // وظيفة داخلية للبحث عن القائمة في خريطة معينة
+      dynamic findInMap(Map<String, dynamic> map) {
+        for (String key in fieldKeys) {
+          // جلب المفاتيح ومقارنتها بدون حساسية للحالة أو الفراغات
+          final match = map.keys.firstWhereOrNull(
+            (k) =>
+                k.trim().toLowerCase() == key ||
+                k.trim().toLowerCase() == key.replaceAll('_', ''),
+          );
+          if (match != null && map[match] is List) return map[match];
+        }
+        return null;
+      }
+
+      // 1. البحث في الجذر
+      dynamic rawFields = findInMap(rootData);
+
+      // 2. إذا لم يجد، يبحث داخل default (المستوى الأول)
+      if (rawFields == null && rootData['default'] is Map) {
+        rawFields = findInMap(Map<String, dynamic>.from(rootData['default']));
+      }
+
+      // 3. إذا لم يجد، يبحث داخل default -> default (المستوى الثاني كما في الـ JSON المرسل)
+      if (rawFields == null &&
+          rootData['default'] is Map &&
+          rootData['default']['default'] is Map) {
+        rawFields = findInMap(
+          Map<String, dynamic>.from(rootData['default']['default']),
+        );
+      }
+
+      if (rawFields == null) {
+        print(
+          '⚠️ Could not find fields for $id in any level. Keys tried: $fieldKeys',
+        );
+        return [];
+      }
+
+      return List<Map<String, dynamic>>.from(
+        (rawFields as List).map((e) => Map<String, dynamic>.from(e)),
+      );
+    } catch (e) {
+      print('❌ Error in getDynamicFields: $e');
+      return [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> getCommunesByWilaya(

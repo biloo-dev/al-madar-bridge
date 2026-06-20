@@ -12,14 +12,13 @@ class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final DataController dataController = Get.find<DataController>();
-    final status = PrefManager.userStatus;
 
     return RefreshIndicator(
       onRefresh: () => dataController.fetchInitialData(),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
         children: [
-          _buildStatusCard(status),
+          Obx(() => _buildStatusCard(dataController.userStatus.value)),
           const SizedBox(height: 24),
           
           // Latest News Section
